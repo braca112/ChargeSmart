@@ -21,7 +21,25 @@ ORS_API_KEY = '5b3ce3597851110001cf62487c119d71037c4e1f983491d829c400f4'  # Zame
 client = openrouteservice.Client(key=ORS_API_KEY)
 
 # Učitavanje podataka
-df = pd.read_csv('D:\ChargeSmart\chargers_london.csv')
+df = pd.read_csv('chargers_london.csv')  # Relativna putanja za Streamlit Cloud
+
+# Stilovi
+st.markdown("""
+<style>
+.main {
+    background-color: #f0f2f6;
+}
+h1 {
+    color: #2e7d32;
+    text-align: center;
+}
+.stButton>button {
+    background-color: #4caf50;
+    color: white;
+    border-radius: 5px;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # Naslov
 st.title("ChargeSmart - Find Your EV Charger")
