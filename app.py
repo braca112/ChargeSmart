@@ -21,7 +21,7 @@ ORS_API_KEY = '5b3ce3597851110001cf62487c119d71037c4e1f983491d829c400f4'  # Zame
 client = openrouteservice.Client(key=ORS_API_KEY)
 
 # Učitavanje podataka
-df = pd.read_csv('chargers_London.csv')  # Relativna putanja za Streamlit Cloud
+df = pd.read_csv('chargers_london.csv')  # Relativna putanja za Streamlit Cloud
 
 # Stilovi
 st.markdown("""
