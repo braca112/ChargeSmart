@@ -3,8 +3,8 @@ import pandas as pd
 import folium
 from streamlit_folium import st_folium
 from math import radians, sin, cos, sqrt, atan2
-import streamlit.components.v1 as components
 import openrouteservice
+from streamlit_javascript import st_javascript
 
 # Funkcija za računanje udaljenosti
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -50,46 +50,41 @@ if 'user_lat' not in st.session_state:
 if 'user_lon' not in st.session_state:
     st.session_state.user_lon = -0.1278
 
-# JavaScript za geolokaciju
-location_script = """
-<script>
-function getLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                // Prosleđivanje lokacije preko Streamlit JavaScript API-ja
-                Streamlit.setComponentValue({lat: lat, lon: lon});
-            },
-            (error) => {
-                alert("Unable to retrieve location: " + error.message);
+# Dugme za dobijanje lokacije
+if st.button("Get My Location"):
+    # JavaScript za dobijanje lokacije
+    location = st_javascript("""
+        new Promise((resolve, reject) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({lat: position.coords.latitude, lon: position.coords.longitude});
+                    },
+                    (error) => {
+                        reject(error.message);
+                    }
+                );
+            } else {
+                reject("Geolocation not supported.");
             }
-        );
-    } else {
-        alert("Geolocation not supported.");
-    }
-}
-</script>
-<button onclick="getLocation()">Get My Location</button>
-"""
-location_data = components.html(location_script, height=50, width=200, key="location")
+        });
+    """)
+    # Provera da li je lokacija dobijena
+    if isinstance(location, dict) and 'lat' in location and 'lon' in location:
+        st.session_state.user_lat = location['lat']
+        st.session_state.user_lon = location['lon']
+        st.query_params['lat'] = str(location['lat'])
+        st.query_params['lon'] = str(location['lon'])
+    elif isinstance(location, str):
+        st.error(f"Error: {location}")
+    else:
+        st.error("Unable to retrieve location.")
 
 # Provera query parametara
 query_params = st.query_params
 if 'lat' in query_params and 'lon' in query_params:
     st.session_state.user_lat = float(query_params['lat'])
     st.session_state.user_lon = float(query_params['lon'])
-
-# Provera da li je JavaScript vratio lokaciju
-if 'location' in st.session_state:
-    location = st.session_state['location']
-    if isinstance(location, dict) and 'lat' in location and 'lon' in location:
-        st.session_state.user_lat = location['lat']
-        st.session_state.user_lon = location['lon']
-        # Ažuriraj query parametre
-        st.query_params['lat'] = str(location['lat'])
-        st.query_params['lon'] = str(location['lon'])
 
 # Unos lokacije
 st.write("Your Location:")
