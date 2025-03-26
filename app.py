@@ -17,11 +17,11 @@ def calculate_distance(lat1, lon1, lat2, lon2):
     return R * c
 
 # Inicijalizacija OpenRouteService API
-ORS_API_KEY = '5b3ce3597851110001cf62487c119d71037c4e1f983491d829c400f4'  # Zameni sa svojim OpenRouteService API ključem
+ORS_API_KEY = '5b3ce3597851110001cf62487c119d71037c4e1f983491d829c400f4'
 client = openrouteservice.Client(key=ORS_API_KEY)
 
 # Učitavanje podataka
-df = pd.read_csv('chargers_london.csv')  # Relativna putanja za Streamlit Cloud
+df = pd.read_csv('chargers_london.csv')
 
 # Stilovi
 st.markdown("""
@@ -59,7 +59,8 @@ function getLocation() {
             (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                window.location.href = `/?lat=${lat}&lon=${lon}`;
+                // Prosleđivanje lokacije preko Streamlit JavaScript API-ja
+                Streamlit.setComponentValue({lat: lat, lon: lon});
             },
             (error) => {
                 alert("Unable to retrieve location: " + error.message);
@@ -72,13 +73,23 @@ function getLocation() {
 </script>
 <button onclick="getLocation()">Get My Location</button>
 """
-components.html(location_script, height=50)
+location_data = components.html(location_script, height=50, width=200, key="location")
 
 # Provera query parametara
 query_params = st.query_params
 if 'lat' in query_params and 'lon' in query_params:
     st.session_state.user_lat = float(query_params['lat'])
     st.session_state.user_lon = float(query_params['lon'])
+
+# Provera da li je JavaScript vratio lokaciju
+if 'location' in st.session_state:
+    location = st.session_state['location']
+    if isinstance(location, dict) and 'lat' in location and 'lon' in location:
+        st.session_state.user_lat = location['lat']
+        st.session_state.user_lon = location['lon']
+        # Ažuriraj query parametre
+        st.query_params['lat'] = str(location['lat'])
+        st.query_params['lon'] = str(location['lon'])
 
 # Unos lokacije
 st.write("Your Location:")
