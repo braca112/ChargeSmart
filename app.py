@@ -50,35 +50,56 @@ if 'user_lat' not in st.session_state:
 if 'user_lon' not in st.session_state:
     st.session_state.user_lon = -0.1278
 
-# Dugme za dobijanje lokacije
-if st.button("Get My Location"):
-    # JavaScript za dobijanje lokacije
-    location = st_javascript("""
-        new Promise((resolve, reject) => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        resolve({lat: position.coords.latitude, lon: position.coords.longitude});
-                    },
-                    (error) => {
-                        reject(error.message);
-                    }
-                );
-            } else {
-                reject("Geolocation not supported.");
-            }
-        });
-    """)
-    # Provera da li je lokacija dobijena
-    if isinstance(location, dict) and 'lat' in location and 'lon' in location:
-        st.session_state.user_lat = location['lat']
-        st.session_state.user_lon = location['lon']
-        st.query_params['lat'] = str(location['lat'])
-        st.query_params['lon'] = str(location['lon'])
-    elif isinstance(location, str):
-        st.error(f"Error: {location}")
-    else:
-        st.error("Unable to retrieve location.")
+# Provera da li je geolokacija podržana
+geolocation_supported = st_javascript("return 'geolocation' in navigator;")
+if not geolocation_supported:
+    st.error("Geolocation is not supported by your browser.")
+else:
+    # Dugme za dobijanje lokacije
+    if st.button("Get My Location"):
+        # JavaScript za dobijanje lokacije
+        location = st_javascript("""
+            new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve({lat: position.coords.latitude, lon: position.coords.longitude});
+                        },
+                        (error) => {
+                            let errorMessage;
+                            switch(error.code) {
+                                case error.PERMISSION_DENIED:
+                                    errorMessage = "User denied the request for Geolocation.";
+                                    break;
+                                case error.POSITION_UNAVAILABLE:
+                                    errorMessage = "Location information is unavailable.";
+                                    break;
+                                case error.TIMEOUT:
+                                    errorMessage = "The request to get user location timed out.";
+                                    break;
+                                default:
+                                    errorMessage = "An unknown error occurred.";
+                                    break;
+                            }
+                            reject(errorMessage);
+                        }
+                    );
+                } else {
+                    reject("Geolocation not supported.");
+                }
+            });
+        """)
+        # Provera da li je lokacija dobijena
+        if isinstance(location, dict) and 'lat' in location and 'lon' in location:
+            st.session_state.user_lat = location['lat']
+            st.session_state.user_lon = location['lon']
+            st.query_params['lat'] = str(location['lat'])
+            st.query_params['lon'] = str(location['lon'])
+            st.success("Location retrieved successfully!")
+        elif isinstance(location, str):
+            st.error(f"Error: {location}")
+        else:
+            st.error("Unable to retrieve location. Please try again.")
 
 # Provera query parametara
 query_params = st.query_params
