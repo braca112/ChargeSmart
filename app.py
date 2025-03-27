@@ -4,7 +4,6 @@ import folium
 from streamlit_folium import st_folium
 from math import radians, sin, cos, sqrt, atan2
 import openrouteservice
-from streamlit_javascript import st_javascript
 
 # Funkcija za računanje udaljenosti
 def calculate_distance(lat1, lon1, lat2, lon2):
@@ -49,63 +48,69 @@ if 'user_lat' not in st.session_state:
     st.session_state.user_lat = 51.5074  # Podrazumevani London
 if 'user_lon' not in st.session_state:
     st.session_state.user_lon = -0.1278
+if 'location_error' not in st.session_state:
+    st.session_state.location_error = None
 
-# Provera da li je geolokacija podržana
-geolocation_supported = st_javascript("return 'geolocation' in navigator;")
-if not geolocation_supported:
-    st.error("Geolocation is not supported by your browser.")
-else:
-    # Dugme za dobijanje lokacije
-    if st.button("Get My Location"):
-        # JavaScript za dobijanje lokacije
-        location = st_javascript("""
-            new Promise((resolve, reject) => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            resolve({lat: position.coords.latitude, lon: position.coords.longitude});
-                        },
-                        (error) => {
-                            let errorMessage;
-                            switch(error.code) {
-                                case error.PERMISSION_DENIED:
-                                    errorMessage = "User denied the request for Geolocation.";
-                                    break;
-                                case error.POSITION_UNAVAILABLE:
-                                    errorMessage = "Location information is unavailable.";
-                                    break;
-                                case error.TIMEOUT:
-                                    errorMessage = "The request to get user location timed out.";
-                                    break;
-                                default:
-                                    errorMessage = "An unknown error occurred.";
-                                    break;
-                            }
-                            reject(errorMessage);
-                        }
-                    );
-                } else {
-                    reject("Geolocation not supported.");
+# JavaScript za geolokaciju
+st.markdown("""
+<button id="getLocationBtn">Get My Location</button>
+<script>
+document.getElementById("getLocationBtn").onclick = function() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                // Prosleđivanje lokacije preko hidden input polja
+                document.getElementById("lat").value = lat;
+                document.getElementById("lon").value = lon;
+                document.getElementById("locationForm").submit();
+            },
+            (error) => {
+                let errorMessage;
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "User denied the request for Geolocation.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "Location information is unavailable.";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "The request to get user location timed out.";
+                        break;
+                    default:
+                        errorMessage = "An unknown error occurred.";
+                        break;
                 }
-            });
-        """)
-        # Provera da li je lokacija dobijena
-        if isinstance(location, dict) and 'lat' in location and 'lon' in location:
-            st.session_state.user_lat = location['lat']
-            st.session_state.user_lon = location['lon']
-            st.query_params['lat'] = str(location['lat'])
-            st.query_params['lon'] = str(location['lon'])
-            st.success("Location retrieved successfully!")
-        elif isinstance(location, str):
-            st.error(f"Error: {location}")
-        else:
-            st.error("Unable to retrieve location. Please try again.")
+                document.getElementById("error").value = errorMessage;
+                document.getElementById("locationForm").submit();
+            }
+        );
+    } else {
+        document.getElementById("error").value = "Geolocation is not supported by your browser.";
+        document.getElementById("locationForm").submit();
+    }
+};
+</script>
+<form id="locationForm" style="display: none;">
+    <input type="hidden" id="lat" name="lat">
+    <input type="hidden" id="lon" name="lon">
+    <input type="hidden" id="error" name="error">
+</form>
+""", unsafe_allow_html=True)
 
 # Provera query parametara
 query_params = st.query_params
 if 'lat' in query_params and 'lon' in query_params:
     st.session_state.user_lat = float(query_params['lat'])
     st.session_state.user_lon = float(query_params['lon'])
+    st.session_state.location_error = None
+elif 'error' in query_params:
+    st.session_state.location_error = query_params['error']
+
+# Prikaz greške ako postoji
+if st.session_state.location_error:
+    st.error(f"Error: {st.session_state.location_error}")
 
 # Unos lokacije
 st.write("Your Location:")
