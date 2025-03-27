@@ -61,10 +61,8 @@ document.getElementById("getLocationBtn").onclick = function() {
             (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                // Prosleđivanje lokacije preko hidden input polja
-                document.getElementById("lat").value = lat;
-                document.getElementById("lon").value = lon;
-                document.getElementById("locationForm").submit();
+                // Ažuriranje URL-a sa query parametrima
+                window.location.href = window.location.pathname + "?lat=" + lat + "&lon=" + lon;
             },
             (error) => {
                 let errorMessage;
@@ -82,21 +80,15 @@ document.getElementById("getLocationBtn").onclick = function() {
                         errorMessage = "An unknown error occurred.";
                         break;
                 }
-                document.getElementById("error").value = errorMessage;
-                document.getElementById("locationForm").submit();
+                // Prosleđivanje greške preko query parametra
+                window.location.href = window.location.pathname + "?error=" + encodeURIComponent(errorMessage);
             }
         );
     } else {
-        document.getElementById("error").value = "Geolocation is not supported by your browser.";
-        document.getElementById("locationForm").submit();
+        window.location.href = window.location.pathname + "?error=" + encodeURIComponent("Geolocation is not supported by your browser.");
     }
 };
 </script>
-<form id="locationForm" style="display: none;">
-    <input type="hidden" id="lat" name="lat">
-    <input type="hidden" id="lon" name="lon">
-    <input type="hidden" id="error" name="error">
-</form>
 """, unsafe_allow_html=True)
 
 # Provera query parametara
