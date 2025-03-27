@@ -61,8 +61,12 @@ document.getElementById("getLocationBtn").onclick = function() {
             (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
-                // Ažuriranje URL-a sa query parametrima
-                window.location.href = window.location.pathname + "?lat=" + lat + "&lon=" + lon;
+                // Čuvanje lokacije u localStorage
+                localStorage.setItem("user_lat", lat);
+                localStorage.setItem("user_lon", lon);
+                localStorage.removeItem("location_error");
+                // Osvežavanje stranice
+                window.location.reload();
             },
             (error) => {
                 let errorMessage;
@@ -80,12 +84,30 @@ document.getElementById("getLocationBtn").onclick = function() {
                         errorMessage = "An unknown error occurred.";
                         break;
                 }
-                // Prosleđivanje greške preko query parametra
-                window.location.href = window.location.pathname + "?error=" + encodeURIComponent(errorMessage);
+                // Čuvanje greške u localStorage
+                localStorage.setItem("location_error", errorMessage);
+                localStorage.removeItem("user_lat");
+                localStorage.removeItem("user_lon");
+                // Osvežavanje stranice
+                window.location.reload();
             }
         );
     } else {
-        window.location.href = window.location.pathname + "?error=" + encodeURIComponent("Geolocation is not supported by your browser.");
+        localStorage.setItem("location_error", "Geolocation is not supported by your browser.");
+        localStorage.removeItem("user_lat");
+        localStorage.removeItem("user_lon");
+        window.location.reload();
+    }
+};
+// Provera localStorage pri učitavanju stranice
+window.onload = function() {
+    const lat = localStorage.getItem("user_lat");
+    const lon = localStorage.getItem("user_lon");
+    const error = localStorage.getItem("location_error");
+    if (lat && lon) {
+        window.location.href = window.location.pathname + "?lat=" + lat + "&lon=" + lon;
+    } else if (error) {
+        window.location.href = window.location.pathname + "?error=" + encodeURIComponent(error);
     }
 };
 </script>
@@ -97,8 +119,24 @@ if 'lat' in query_params and 'lon' in query_params:
     st.session_state.user_lat = float(query_params['lat'])
     st.session_state.user_lon = float(query_params['lon'])
     st.session_state.location_error = None
+    # Očisti localStorage nakon uspešnog preuzimanja
+    st.markdown("""
+    <script>
+    localStorage.removeItem("user_lat");
+    localStorage.removeItem("user_lon");
+    localStorage.removeItem("location_error");
+    </script>
+    """, unsafe_allow_html=True)
 elif 'error' in query_params:
     st.session_state.location_error = query_params['error']
+    # Očisti localStorage nakon greške
+    st.markdown("""
+    <script>
+    localStorage.removeItem("user_lat");
+    localStorage.removeItem("user_lon");
+    localStorage.removeItem("location_error");
+    </script>
+    """, unsafe_allow_html=True)
 
 # Prikaz greške ako postoji
 if st.session_state.location_error:
